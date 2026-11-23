@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mermaid Counting</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mermaid">
+<meta name="format-detection" content="telephone=no">
+<style>
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  overflow: hidden;
+  background: #3fb5e6;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-text-size-adjust: none;
+  font-family: "Arial Rounded MT Bold", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  touch-action: none;
+}
+* { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-box-sizing: border-box; box-sizing: border-box; }
+
+#stage {
+  position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+  overflow: hidden;
+  background-color: #3fb5e6;
+  background-image: -webkit-linear-gradient(top, #9be7ff 0%, #4cc3ee 45%, #2b98d6 100%);
+  background-image: linear-gradient(to bottom, #9be7ff 0%, #4cc3ee 45%, #2b98d6 100%);
+}
+
+/* ---------- scenery ---------- */
+#sand {
+  position: absolute; left: -10%; width: 120%; bottom: -6%; height: 20%;
+  background: #ffe09a;
+  border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+  box-shadow: inset 0 10px 0 #ffeab8;
+}
+.weed {
+  position: absolute; bottom: 4%;
+  -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%;
+  -webkit-animation: sway 5s ease-in-out infinite alternate;
+  animation: sway 5s ease-in-out infinite alternate;
+}
+@-webkit-keyframes sway { from { -webkit-transform: rotate(-4deg); } to { -webkit-transform: rotate(4deg); } }
+@keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+
+.rise {
+  position: absolute; bottom: -40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.15);
+  -webkit-animation: rise 12s linear infinite;
+  animation: rise 12s linear infinite;
+}
+@-webkit-keyframes rise { from { -webkit-transform: translate3d(0,0,0); } to { -webkit-transform: translate3d(0,-1200px,0); } }
+@keyframes rise { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-1200px,0); } }
+
+/* ---------- mermaid ---------- */
+#mermaid {
+  position: absolute; left: 0; bottom: 0;
+  -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%;
+  -webkit-animation: float 3s ease-in-out infinite alternate;
+  animation: float 3s ease-in-out infinite alternate;
+  z-index: 5;
+}
+#mermaid svg { width: 100%; height: 100%; display: block; }
+@-webkit-keyframes float { from { -webkit-transform: translate3d(0,0,0); } to { -webkit-transform: translate3d(0,-12px,0); } }
+@keyframes float { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-12px,0); } }
+#mermaid.happy {
+  -webkit-animation: hop 0.6s ease-in-out 4;
+  animation: hop 0.6s ease-in-out 4;
+}
+@-webkit-keyframes hop { 0%,100% { -webkit-transform: translate3d(0,0,0) rotate(0); } 50% { -webkit-transform: translate3d(0,-40px,0) rotate(-4deg); } }
+@keyframes hop { 0%,100% { transform: translate3d(0,0,0) rotate(0); } 50% { transform: translate3d(0,-40px,0) rotate(-4deg); } }
+#mermaid .mouth-open { display: none; }
+#mermaid.talk .mouth-open { display: inline; }
+#mermaid.talk .mouth-closed { display: none; }
+#mermaid .arm-wave {
+  -webkit-transform-origin: 120px 126px; transform-origin: 120px 126px;
+}
+#mermaid.happy .arm-wave {
+  -webkit-animation: wave 0.3s ease-in-out infinite alternate;
+  animation: wave 0.3s ease-in-out infinite alternate;
+}
+@-webkit-keyframes wave { from { -webkit-transform: rotate(-12deg); } to { -webkit-transform: rotate(14deg); } }
+@keyframes wave { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+
+/* ---------- speech bubble (picture prompt) ---------- */
+#bubble {
+  position: absolute; z-index: 6;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 6px solid #ffd6ec;
+  -webkit-transition: -webkit-transform 0.35s ease, opacity 0.35s ease;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+  -webkit-transform: scale(0); transform: scale(0);
+  opacity: 0;
+}
+#bubble.show { -webkit-transform: scale(1); transform: scale(1); opacity: 1; }
+#bubble .tailA, #bubble .tailB {
+  position: absolute; border-radius: 50%; background: #fff; border: 5px solid #ffd6ec;
+}
+#bubbleIcon { position: absolute; left: 14%; top: 14%; width: 72%; height: 72%; }
+#bubbleIcon svg { width: 100%; height: 100%; display: block; }
+#bubbleNum {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  text-align: center; color: #ff5fa2; font-weight: bold;
+  text-shadow: 0 4px 0 #fff, 0 -4px 0 #fff, 4px 0 0 #fff, -4px 0 0 #fff;
+  display: none;
+}
+#bubble.total #bubbleNum { display: block; }
+#bubble.total #bubbleIcon { opacity: 0.45; }
+#bubble.ask #bubbleIcon {
+  -webkit-animation: breathe 1.4s ease-in-out infinite alternate;
+  animation: breathe 1.4s ease-in-out infinite alternate;
+}
+@-webkit-keyframes breathe { from { -webkit-transform: scale(0.92); } to { -webkit-transform: scale(1.06); } }
+@keyframes breathe { from { transform: scale(0.92); } to { transform: scale(1.06); } }
+
+/* ---------- countable objects ---------- */
+.obj {
+  position: absolute; z-index: 4;
+}
+.obj .inner {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  -webkit-transform: scale(0); transform: scale(0);
+}
+.obj.in .inner {
+  -webkit-transform: scale(1); transform: scale(1);
+  -webkit-animation: popIn 0.5s ease-out;
+  animation: popIn 0.5s ease-out;
+}
+@-webkit-keyframes popIn { 0% { -webkit-transform: scale(0); } 70% { -webkit-transform: scale(1.15); } 100% { -webkit-transform: scale(1); } }
+@keyframes popIn { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.obj .art { position: absolute; left: 6%; top: 6%; width: 88%; height: 88%; }
+.obj .art svg { width: 100%; height: 100%; display: block; }
+.obj .ring {
+  position: absolute; left: -4%; top: -4%; width: 108%; height: 108%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  border: 5px solid rgba(255,255,255,0.9);
+  opacity: 0;
+  -webkit-transition: opacity 0.3s; transition: opacity 0.3s;
+}
+.obj.counted .ring { opacity: 1; }
+.obj .num {
+  position: absolute; left: 50%; top: -36%;
+  width: 0; text-align: center;
+  color: #ffffff; font-weight: bold;
+  text-shadow: 0 3px 0 #ff5fa2, 0 -3px 0 #ff5fa2, 3px 0 0 #ff5fa2, -3px 0 0 #ff5fa2, 2px 2px 0 #ff5fa2, -2px -2px 0 #ff5fa2, 2px -2px 0 #ff5fa2, -2px 2px 0 #ff5fa2, 0 6px 6px rgba(0,0,0,0.25);
+  -webkit-transform: scale(0); transform: scale(0);
+  -webkit-transition: -webkit-transform 0.3s cubic-bezier(.3,1.6,.5,1); transition: transform 0.3s cubic-bezier(.3,1.6,.5,1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.obj .num span { display: block; width: 200px; margin-left: -100px; }
+.obj.counted .num { -webkit-transform: scale(1); transform: scale(1); }
+
+.obj.tap-starfish .art { -webkit-animation: spin 0.6s ease-out; animation: spin 0.6s ease-out; }
+.obj.tap-shell .art    { -webkit-animation: bounce 0.6s ease-out; animation: bounce 0.6s ease-out; }
+.obj.tap-fish .art     { -webkit-animation: wiggle 0.6s ease-in-out; animation: wiggle 0.6s ease-in-out; }
+.obj.tap-bubble .art   { -webkit-animation: squish 0.6s ease-out; animation: squish 0.6s ease-out; }
+.obj.nudge .art        { -webkit-animation: nudge 0.4s ease-in-out; animation: nudge 0.4s ease-in-out; }
+.obj.hint .inner       { -webkit-animation: breathe 0.9s ease-in-out infinite alternate; animation: breathe 0.9s ease-in-out infinite alternate; }
+.obj.jump .art         { -webkit-animation: bounce 0.6s ease-out 3; animation: bounce 0.6s ease-out 3; }
+.obj.out .inner {
+  -webkit-transition: -webkit-transform 0.4s ease-in, opacity 0.4s; transition: transform 0.4s ease-in, opacity 0.4s;
+  -webkit-transform: scale(0.2); transform: scale(0.2); opacity: 0;
+}
+
+@-webkit-keyframes spin { 0% { -webkit-transform: rotate(0) scale(1); } 50% { -webkit-transform: rotate(180deg) scale(1.2); } 100% { -webkit-transform: rotate(360deg) scale(1); } }
+@keyframes spin { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+@-webkit-keyframes bounce { 0%,100% { -webkit-transform: translate3d(0,0,0); } 40% { -webkit-transform: translate3d(0,-30%,0); } 70% { -webkit-transform: translate3d(0,-6%,0); } }
+@keyframes bounce { 0%,100% { transform: translate3d(0,0,0); } 40% { transform: translate3d(0,-30%,0); } 70% { transform: translate3d(0,-6%,0); } }
+@-webkit-keyframes wiggle { 0%,100% { -webkit-transform: rotate(0); } 20% { -webkit-transform: rotate(-15deg); } 40% { -webkit-transform: rotate(15deg); } 60% { -webkit-transform: rotate(-10deg); } 80% { -webkit-transform: rotate(10deg); } }
+@keyframes wiggle { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-15deg); } 40% { transform: rotate(15deg); } 60% { transform: rotate(-10deg); } 80% { transform: rotate(10deg); } }
+@-webkit-keyframes squish { 0%,100% { -webkit-transform: scale(1,1); } 30% { -webkit-transform: scale(1.25,0.8); } 60% { -webkit-transform: scale(0.9,1.15); } }
+@keyframes squish { 0%,100% { transform: scale(1,1); } 30% { transform: scale(1.25,0.8); } 60% { transform: scale(0.9,1.15); } }
+@-webkit-keyframes nudge { 0%,100% { -webkit-transform: scale(1); } 50% { -webkit-transform: scale(1.08); } }
+@keyframes nudge { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+/* ---------- little effects ---------- */
+.spark {
+  position: absolute; z-index: 8; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  pointer-events: none;
+  -webkit-transition: -webkit-transform 0.8s ease-out, opacity 0.8s ease-in;
+  transition: transform 0.8s ease-out, opacity 0.8s ease-in;
+}
+.spark svg { width: 100%; height: 100%; display: block; }
+.blip {
+  position: absolute; z-index: 3; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-radius: 50%; border: 3px solid rgba(255,255,255,0.85);
+  pointer-events: none;
+  -webkit-transition: -webkit-transform 1.2s ease-out, opacity 1.2s ease-in;
+  transition: transform 1.2s ease-out, opacity 1.2s ease-in;
+}
+
+/* ---------- start screen ---------- */
+#start {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 20;
+  background: rgba(255,255,255,0.18);
+}
+#play {
+  position: absolute; left: 50%; top: 50%;
+  width: 240px; height: 240px; margin: -120px 0 0 -120px;
+  border-radius: 50%;
+  background: #ffd23f;
+  border: 10px solid #ffffff;
+  box-shadow: 0 12px 0 #e0a800, 0 20px 30px rgba(0,0,0,0.25);
+  -webkit-animation: breathe 1.2s ease-in-out infinite alternate;
+  animation: breathe 1.2s ease-in-out infinite alternate;
+}
+#play svg { position: absolute; left: 22%; top: 20%; width: 60%; height: 60%; }
+#start.pressed #play { -webkit-animation: none; animation: none; -webkit-transform: scale(0.9); transform: scale(0.9); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="sand"></div>
+  <div id="decor"></div>
+  <div id="objects"></div>
+  <div id="mermaid"></div>
+  <div id="bubble">
+    <div class="tailA"></div><div class="tailB"></div>
+    <div id="bubbleIcon"></div>
+    <div id="bubbleNum"></div>
+  </div>
+  <div id="fx"></div>
+  <div id="start">
+    <div id="play"><svg viewBox="0 0 100 100"><path d="M30 18 L84 50 L30 82 Z" fill="#ff5fa2" stroke="#ff5fa2" stroke-width="10" stroke-linejoin="round"/></svg></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= helpers ================= */
+  var stage = document.getElementById('stage');
+  var objLayer = document.getElementById('objects');
+  var fxLayer = document.getElementById('fx');
+  var mermaidEl = document.getElementById('mermaid');
+  var bubbleEl = document.getElementById('bubble');
+  var bubbleIcon = document.getElementById('bubbleIcon');
+  var bubbleNum = document.getElementById('bubbleNum');
+  var startEl = document.getElementById('start');
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function now() { return new Date().getTime(); }
+  function hasClass(el, c) { return (' ' + el.className + ' ').indexOf(' ' + c + ' ') > -1; }
+  function addClass(el, c) { if (!hasClass(el, c)) { el.className = (el.className ? el.className + ' ' : '') + c; } }
+  function removeClass(el, c) {
+    el.className = (' ' + el.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, '');
+  }
+  /* restart a CSS animation class */
+  function replayClass(el, c) {
+    removeClass(el, c);
+    void el.offsetWidth;
+    addClass(el, c);
+  }
+  function setTransform(el, v) { el.style.webkitTransform = v; el.style.transform = v; }
+
+  /* ================= artwork (inline SVG) ================= */
+  function starPath(cx, cy, R, r) {
+    var d = '', i, a, rad;
+    for (i = 0; i < 10; i++) {
+      a = -Math.PI / 2 + i * Math.PI / 5;
+      rad = (i % 2) ? r : R;
+      d += (i ? 'L' : 'M') + (cx + rad * Math.cos(a)).toFixed(1) + ' ' + (cy + rad * Math.sin(a)).toFixed(1);
+    }
+    return d + 'Z';
+  }
+  function face(x1, x2, y, mouthY) {
+    return '<circle cx="' + x1 + '" cy="' + y + '" r="4.5" fill="#3b2a3a"/>' +
+      '<circle cx="' + x2 + '" cy="' + y + '" r="4.5" fill="#3b2a3a"/>' +
+      '<circle cx="' + (x1 + 1.5) + '" cy="' + (y - 1.5) + '" r="1.5" fill="#fff"/>' +
+      '<circle cx="' + (x2 + 1.5) + '" cy="' + (y - 1.5) + '" r="1.5" fill="#fff"/>' +
+      '<path d="M' + (x1 + 1) + ' ' + mouthY + ' Q' + ((x1 + x2) / 2) + ' ' + (mouthY + 7) + ' ' + (x2 - 1) + ' ' + mouthY + '" stroke="#3b2a3a" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  }
+
+  var ART = {
+    starfish: function (c) {
+      return '<svg viewBox="0 0 100 100">' +
+        '<path d="' + starPath(50, 54, 42, 19) + '" fill="' + c[0] + '" stroke="' + c[0] + '" stroke-width="9" stroke-linejoin="round"/>' +
+        '<circle cx="50" cy="22" r="2.5" fill="' + c[1] + '"/><circle cx="24" cy="44" r="2.5" fill="' + c[1] + '"/>' +
+        '<circle cx="76" cy="44" r="2.5" fill="' + c[1] + '"/><circle cx="33" cy="76" r="2.5" fill="' + c[1] + '"/>' +
+        '<circle cx="67" cy="76" r="2.5" fill="' + c[1] + '"/>' +
+        face(42, 58, 50, 59) + '</svg>';
+    },
+    shell: function (c) {
+      return '<svg viewBox="0 0 100 100">' +
+        '<path d="M50 90 L10 46 Q6 30 20 26 Q24 12 36 14 Q42 5 50 7 Q58 5 64 14 Q76 12 80 26 Q94 30 90 46 Z" fill="' + c[0] + '" stroke="' + c[1] + '" stroke-width="3" stroke-linejoin="round"/>' +
+        '<path d="M50 88 L20 32 M50 88 L35 18 M50 88 L50 11 M50 88 L65 18 M50 88 L80 32" stroke="' + c[1] + '" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+        '<ellipse cx="50" cy="89" rx="13" ry="7" fill="' + c[1] + '"/>' +
+        '<ellipse cx="38" cy="30" rx="6" ry="4" fill="#fff" opacity="0.6"/>' +
+        '</svg>';
+    },
+    fish: function (c) {
+      return '<svg viewBox="0 0 100 100">' +
+        '<path d="M26 50 L4 28 Q0 50 4 72 Z" fill="' + c[1] + '" stroke="' + c[1] + '" stroke-width="4" stroke-linejoin="round"/>' +
+        '<path d="M48 28 Q56 10 70 26 Z" fill="' + c[1] + '"/>' +
+        '<ellipse cx="56" cy="52" rx="38" ry="27" fill="' + c[0] + '"/>' +
+        '<path d="M40 30 Q48 52 40 74" stroke="' + c[1] + '" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+        '<path d="M52 56 Q58 66 50 70" stroke="' + c[1] + '" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="74" cy="44" r="8" fill="#fff"/><circle cx="76" cy="44" r="4.5" fill="#3b2a3a"/>' +
+        '<circle cx="77.5" cy="42.5" r="1.5" fill="#fff"/>' +
+        '<path d="M78 60 Q84 63 89 58" stroke="#3b2a3a" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+        '</svg>';
+    },
+    bubble: function (c) {
+      return '<svg viewBox="0 0 100 100">' +
+        '<circle cx="50" cy="50" r="42" fill="' + c[0] + '" fill-opacity="0.55" stroke="#ffffff" stroke-width="5"/>' +
+        '<circle cx="50" cy="50" r="34" fill="none" stroke="' + c[1] + '" stroke-width="3" stroke-opacity="0.6"/>' +
+        '<ellipse cx="34" cy="32" rx="11" ry="7" fill="#fff" transform="rotate(-35 34 32)"/>' +
+        '<circle cx="66" cy="70" r="4" fill="#fff" opacity="0.8"/>' +
+        '</svg>';
+    }
+  };
+  var PALETTES = {
+    starfish: [['#ff9f43', '#ffd8a8'], ['#ff6b81', '#ffd1da'], ['#ffc93c', '#fff1b8']],
+    shell: [['#ffb3d1', '#f06aa5'], ['#ffd6a5', '#e8955a'], ['#e0c3ff', '#a874e8']],
+    fish: [['#ffd23f', '#ff9f1c'], ['#7bdff2', '#2f9bd6'], ['#c39bff', '#8a5ce6'], ['#ff9eb5', '#ff5c8a']],
+    bubble: [['#dff8ff', '#7fd8ff'], ['#f1e4ff', '#b48cff'], ['#e4fff4', '#67dbb0']]
+  };
+
+  var WORDS = {
+    starfish: { one: 'starfish', many: 'starfish' },
+    shell: { one: 'shell', many: 'shells' },
+    fish: { one: 'fish', many: 'fish' },
+    bubble: { one: 'bubble', many: 'bubbles' }
+  };
+  var NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five'];
+  var PRAISE = ['Well done!', 'Great counting!', 'Hooray!', 'You did it!', 'Super job!'];
+
+  var MERMAID_SVG =
+    '<svg viewBox="0 0 200 300">' +
+    /* back hair */
+    '<path d="M62 80 Q36 150 64 196 L84 120 Z" fill="#a66cff"/>' +
+    '<path d="M138 80 Q164 150 136 196 L116 120 Z" fill="#a66cff"/>' +
+    /* tail */
+    '<path d="M70 166 Q56 230 104 266 Q146 228 130 166 Z" fill="#2ed1a8"/>' +
+    '<path d="M80 186 Q90 194 100 186 Q110 194 120 186 M82 206 Q92 214 102 206 Q112 214 122 206 M88 226 Q98 234 108 226" stroke="#1fae8a" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+    '<path d="M104 258 Q72 248 56 290 Q88 280 104 270 Q120 280 152 290 Q136 248 104 258 Z" fill="#1fb592"/>' +
+    /* body */
+    '<path d="M78 118 Q100 108 122 118 L132 170 L68 170 Z" fill="#ffd3b5"/>' +
+    '<circle cx="88" cy="140" r="11" fill="#ff7eb6"/><circle cx="112" cy="140" r="11" fill="#ff7eb6"/>' +
+    '<path d="M68 166 Q100 178 132 166 L132 172 Q100 184 68 172 Z" fill="#1fb592"/>' +
+    /* arms */
+    '<path d="M80 124 Q58 150 70 170" stroke="#ffd3b5" stroke-width="13" fill="none" stroke-linecap="round"/>' +
+    '<g class="arm-wave"><path d="M120 126 Q146 112 152 84" stroke="#ffd3b5" stroke-width="13" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="153" cy="80" r="9" fill="#ffd3b5"/></g>' +
+    /* head */
+    '<rect x="92" y="104" width="16" height="16" fill="#ffd3b5"/>' +
+    '<circle cx="100" cy="82" r="38" fill="#ffd3b5"/>' +
+    '<path d="M60 86 Q56 36 100 38 Q144 36 140 86 Q132 58 112 56 Q104 66 86 60 Q70 64 60 86 Z" fill="#a66cff"/>' +
+    '<path d="' + starPath(130, 50, 12, 5.5) + '" fill="#ffc93c" stroke="#ffc93c" stroke-width="3" stroke-linejoin="round"/>' +
+    /* face */
+    '<circle cx="86" cy="86" r="5.5" fill="#3b2a3a"/><circle cx="114" cy="86" r="5.5" fill="#3b2a3a"/>' +
+    '<circle cx="88" cy="84" r="2" fill="#fff"/><circle cx="116" cy="84" r="2" fill="#fff"/>' +
+    '<circle cx="76" cy="98" r="6" fill="#ff9ec4" opacity="0.7"/><circle cx="124" cy="98" r="6" fill="#ff9ec4" opacity="0.7"/>' +
+    '<path class="mouth-closed" d="M89 100 Q100 112 111 100" stroke="#c2456f" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+    '<ellipse class="mouth-open" cx="100" cy="104" rx="8" ry="7" fill="#c2456f"/>' +
+    '</svg>';
+
+  var SPARK_SVG = '<svg viewBox="0 0 100 100"><path d="' + starPath(50, 50, 46, 20) + '" fill="#fff36b" stroke="#fff36b" stroke-width="6" stroke-linejoin="round"/></svg>';
+
+  mermaidEl.innerHTML = MERMAID_SVG;
+
+  /* decorative seaweed and rising bubbles (kept few for the old CPU) */
+  (function buildDecor() {
+    var decor = document.getElementById('decor');
+    var html = '', i;
+    var weeds = [
+      { right: '3%', h: 220, c: '#2fbf71' }, { right: '9%', h: 160, c: '#46d98a' },
+      { right: '48%', h: 120, c: '#2fbf71' }
+    ];
+    for (i = 0; i < weeds.length; i++) {
+      html += '<div class="weed" style="right:' + weeds[i].right + ';width:60px;height:' + weeds[i].h + 'px;-webkit-animation-delay:-' + i * 1.7 + 's;animation-delay:-' + i * 1.7 + 's">' +
+        '<svg viewBox="0 0 60 200" preserveAspectRatio="none" width="60" height="' + weeds[i].h + '"><path d="M30 200 Q10 160 30 120 Q50 80 30 40 Q20 20 30 0" stroke="' + weeds[i].c + '" stroke-width="14" fill="none" stroke-linecap="round"/></svg></div>';
+    }
+    for (i = 0; i < 6; i++) {
+      var s = randInt(14, 34);
+      html += '<div class="rise" style="left:' + randInt(5, 95) + '%;width:' + s + 'px;height:' + s + 'px;-webkit-animation-duration:' + randInt(10, 18) + 's;animation-duration:' + randInt(10, 18) + 's;-webkit-animation-delay:-' + randInt(0, 15) + 's;animation-delay:-' + randInt(0, 15) + 's"></div>';
+    }
+    decor.innerHTML = html;
+  })();
+
+  /* ================= audio (Web Audio, generated tones) ================= */
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var actx = null;
+
+  function unlockAudio() {
+    if (!AC) { return; }
+    try {
+      if (!actx) { actx = new AC(); }
+      if (actx.state === 'suspended' && actx.resume) { actx.resume(); }
+      /* play a silent buffer inside the touch to unlock iOS */
+      var buf = actx.createBuffer(1, 1, 22050);
+      var src = actx.createBufferSource();
+      src.buffer = buf;
+      src.connect(actx.destination);
+      if (src.start) { src.start(0); } else if (src.noteOn) { src.noteOn(0); }
+    } catch (e) { /* no sound is fine */ }
+  }
+
+  function tone(freq, when, dur, type, vol, slideTo) {
+    if (!actx) { return; }
+    try {
+      var t = actx.currentTime + (when || 0);
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      if (slideTo) { osc.frequency.exponentialRampToValueAtTime(slideTo, t + dur * 0.8); }
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.2, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(g);
+      g.connect(actx.destination);
+      if (osc.start) { osc.start(t); osc.stop(t + dur + 0.05); }
+      else { osc.noteOn(t); osc.noteOff(t + dur + 0.05); }
+    } catch (e) { /* ignore */ }
+  }
+
+  var NOTES = [0, 523.3, 587.3, 659.3, 784.0, 880.0];
+  function sndCount(n) {
+    tone(320, 0, 0.12, 'sine', 0.18, 900);              /* pop */
+    tone(NOTES[n] || 660, 0.06, 0.35, 'triangle', 0.22); /* rising note per number */
+  }
+  function sndSoft() { tone(700, 0, 0.18, 'sine', 0.05, 450); }
+  function sndCelebrate() {
+    var seq = [523.3, 659.3, 784.0, 1046.5, 784.0, 1046.5];
+    for (var i = 0; i < seq.length; i++) { tone(seq[i], i * 0.12, 0.3, 'triangle', 0.18); }
+    tone(1568, 0.75, 0.6, 'sine', 0.08);
+  }
+  function sndAppear(i) { tone(880 + i * 90, 0, 0.12, 'sine', 0.06, 1200 + i * 90); }
+
+  /* ================= speech ================= */
+  var synth = window.speechSynthesis || null;
+  var Utter = window.SpeechSynthesisUtterance || null;
+  var voice = null;
+  var talkTimer = null;
+
+  function chooseVoice() {
+    if (!synth || !synth.getVoices) { return; }
+    var vs = synth.getVoices() || [], i, best = null;
+    var liked = /samantha|karen|moira|tessa|fiona|victoria|serena|female|zira|google us english/i;
+    for (i = 0; i < vs.length; i++) {
+      if (!vs[i].lang || vs[i].lang.toLowerCase().indexOf('en') !== 0) { continue; }
+      if (!best) { best = vs[i]; }
+      if (liked.test(vs[i].name)) { best = vs[i]; break; }
+    }
+    voice = best;
+  }
+  if (synth) {
+    chooseVoice();
+    try { synth.onvoiceschanged = chooseVoice; } catch (e) { }
+  }
+
+  function mermaidTalk(ms) {
+    addClass(mermaidEl, 'talk');
+    var flip = true, end = now() + ms;
+    if (talkTimer) { clearInterval(talkTimer); }
+    talkTimer = setInterval(function () {
+      if (now() > end) { clearInterval(talkTimer); talkTimer = null; removeClass(mermaidEl, 'talk'); return; }
+      flip = !flip;
+      if (flip) { addClass(mermaidEl, 'talk'); } else { removeClass(mermaidEl, 'talk'); }
+    }, 140);
+  }
+
+  function say(text, interrupt) {
+    mermaidTalk(Math.min(3000, 350 + text.length * 60));
+    if (!synth || !Utter) { return; }
+    try {
+      if (interrupt && (synth.speaking || synth.pending)) { synth.cancel(); }
+      var u = new Utter(text);
+      u.lang = (voice && voice.lang) || 'en-US';
+      if (voice) { u.voice = voice; }
+      u.rate = 0.9;
+      u.pitch = 1.25;
+      u.volume = 1;
+      synth.speak(u);
+    } catch (e) { /* the game still works silently */ }
+  }
+
+  /* ================= layout ================= */
+  var W = 0, H = 0, S = 120, mermaidRect = null, bubbleRect = null;
+
+  function layout() {
+    W = window.innerWidth || document.documentElement.clientWidth;
+    H = window.innerHeight || document.documentElement.clientHeight;
+    stage.style.width = W + 'px';
+    stage.style.height = H + 'px';
+
+    var mh = Math.min(H * 0.5, W * 0.46);
+    var mw = mh * 0.667;
+    mermaidEl.style.width = mw + 'px';
+    mermaidEl.style.height = mh + 'px';
+    mermaidEl.style.left = (W * 0.01) + 'px';
+
+    var bs = Math.round(Math.max(110, mh * 0.42));
+    bubbleEl.style.width = bs + 'px';
+    bubbleEl.style.height = bs + 'px';
+    bubbleEl.style.left = Math.round(W * 0.01 + mw * 0.72) + 'px';
+    bubbleEl.style.top = Math.round(H - mh - bs * 0.55) + 'px';
+    var tails = bubbleEl.getElementsByTagName('div');
+    var ta = Math.round(bs * 0.16), tb = Math.round(bs * 0.09);
+    tails[0].style.cssText = 'width:' + ta + 'px;height:' + ta + 'px;left:' + Math.round(-ta * 0.2) + 'px;bottom:' + Math.round(-ta * 0.35) + 'px';
+    tails[1].style.cssText = 'width:' + tb + 'px;height:' + tb + 'px;left:' + Math.round(-ta * 0.9) + 'px;bottom:' + Math.round(-ta * 1.2) + 'px';
+    bubbleNum.style.fontSize = Math.round(bs * 0.72) + 'px';
+    bubbleNum.style.lineHeight = (bs - 12) + 'px';
+
+    mermaidRect = { x: 0, y: H - mh - 20, w: mw + W * 0.01 + 10, h: mh + 20 };
+    bubbleRect = { x: W * 0.01 + mw * 0.72 - ta * 1.2, y: H - mh - bs * 0.55, w: bs + ta * 1.2, h: bs + ta * 1.2 };
+
+    S = Math.round(Math.max(96, Math.min(150, Math.min(W, H) * 0.17)));
+
+    var play = document.getElementById('play');
+    var ps = Math.round(Math.max(180, Math.min(260, Math.min(W, H) * 0.32)));
+    play.style.width = play.style.height = ps + 'px';
+    play.style.marginLeft = play.style.marginTop = (-ps / 2) + 'px';
+  }
+
+  function overlaps(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  /* find spread-out spots that keep away from the mermaid and each other */
+  function findSpots(n) {
+    var spots = [], tries, minD = S * 1.6, margin = 16;
+    var topPad = S * 0.45; /* room for the numeral above each object */
+    var x0 = margin, x1 = W - S - margin, y0 = margin + topPad, y1 = H - S - margin;
+    var attempt = 0;
+    while (spots.length < n && attempt < 6) {
+      spots = [];
+      for (var k = 0; k < n; k++) {
+        var ok = false;
+        for (tries = 0; tries < 250 && !ok; tries++) {
+          var p = { x: rand(x0, x1), y: rand(y0, y1), w: S, h: S };
+          var box = { x: p.x - 10, y: p.y - topPad, w: S + 20, h: S + topPad + 10 };
+          if (overlaps(box, mermaidRect) || overlaps(box, bubbleRect)) { continue; }
+          ok = true;
+          for (var j = 0; j < spots.length; j++) {
+            var dx = spots[j].x - p.x, dy = spots[j].y - p.y;
+            if (Math.sqrt(dx * dx + dy * dy) < minD) { ok = false; break; }
+          }
+          if (ok) { spots.push(p); }
+        }
+        if (!ok) { break; }
+      }
+      minD *= 0.88;
+      attempt++;
+    }
+    /* fallback: a simple row across the top-right area */
+    while (spots.length < n) {
+      var i = spots.length;
+      spots.push({ x: W - (i + 1) * (S + 20), y: y0 + (i % 2) * (S + 10), w: S, h: S });
+    }
+    return spots;
+  }
+
+  /* ================= game state ================= */
+  var TYPES = ['starfish', 'shell', 'fish', 'bubble'];
+  var game = {
+    phase: 'idle',  /* idle | intro | counting | done */
+    type: null, total: 0, counted: 0, objects: [],
+    roundsDone: 0, lastN: 0, lastType: null,
+    idleTimer: null, hinted: false
+  };
+  var timers = [];
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+  function maxForProgress() {
+    if (game.roundsDone < 3) { return 3; }
+    if (game.roundsDone < 7) { return 4; }
+    return 5;
+  }
+
+  function chooseCount() {
+    var max = maxForProgress(), n, guard = 0;
+    do {
+      /* favour the newest, biggest number a little once it's unlocked */
+      n = (max > 3 && Math.random() < 0.35) ? max : randInt(1, max);
+      guard++;
+    } while (n === game.lastN && guard < 10);
+    return n;
+  }
+
+  function chooseType() {
+    var t, guard = 0;
+    do { t = pick(TYPES); guard++; } while (t === game.lastType && guard < 10);
+    return t;
+  }
+
+  function promptText() {
+    var w = WORDS[game.type];
+    return game.total === 1 ? 'Can you tap the ' + w.one + '?' : 'Can you tap all the ' + w.many + '?';
+  }
+
+  function showAskBubble() {
+    bubbleIcon.innerHTML = ART[game.type](PALETTES[game.type][0]);
+    removeClass(bubbleEl, 'total');
+    addClass(bubbleEl, 'ask');
+    addClass(bubbleEl, 'show');
+  }
+
+  function clearObjects(animate) {
+    var old = game.objects;
+    game.objects = [];
+    for (var i = 0; i < old.length; i++) {
+      (function (o) {
+        if (animate) {
+          addClass(o.el, 'out');
+          setTimeout(function () { if (o.el.parentNode) { o.el.parentNode.removeChild(o.el); } }, 450);
+        } else if (o.el.parentNode) { o.el.parentNode.removeChild(o.el); }
+      })(old[i]);
+    }
+  }
+
+  function makeObject(type, idx, spot) {
+    var el = document.createElement('div');
+    el.className = 'obj';
+    el.setAttribute('data-idx', idx);
+    var pal = pick(PALETTES[type]);
+    var flip = (type === 'fish' && Math.random() < 0.5) ? '-webkit-transform:scaleX(-1);transform:scaleX(-1);' : '';
+    var tilt = type === 'starfish' || type === 'shell' ? randInt(-15, 15) : 0;
+    el.innerHTML =
+      '<div class="inner"><div class="ring"></div>' +
+      '<div class="art"><div style="width:100%;height:100%;-webkit-transform:rotate(' + tilt + 'deg);transform:rotate(' + tilt + 'deg)"><div style="' + flip + 'width:100%;height:100%">' + ART[type](pal) + '</div></div></div>' +
+      '<div class="num"><span></span></div></div>';
+    var o = { el: el, idx: idx, counted: false, spot: spot };
+    positionObject(o);
+    objLayer.appendChild(el);
+    return o;
+  }
+
+  function positionObject(o) {
+    o.el.style.left = Math.round(o.spot.x) + 'px';
+    o.el.style.top = Math.round(o.spot.y) + 'px';
+    o.el.style.width = S + 'px';
+    o.el.style.height = S + 'px';
+    var num = o.el.querySelector('.num span');
+    num.style.fontSize = Math.round(S * 0.55) + 'px';
+    num.style.lineHeight = Math.round(S * 0.6) + 'px';
+  }
+
+  function newRound() {
+    game.phase = 'intro';
+    game.hinted = false;
+    removeClass(mermaidEl, 'happy');
+    clearObjects(true);
+
+    game.type = chooseType();
+    game.total = chooseCount();
+    game.counted = 0;
+    game.lastN = game.total;
+    game.lastType = game.type;
+
+    later(function () {
+      showAskBubble();
+      say(promptText(), true);
+      var spots = findSpots(game.total);
+      var i;
+      for (i = 0; i < game.total; i++) { game.objects.push(makeObject(game.type, i, spots[i])); }
+      for (i = 0; i < game.objects.length; i++) {
+        (function (o, k) {
+          later(function () { addClass(o.el, 'in'); sndAppear(k); }, 250 + k * 260);
+        })(game.objects[i], i);
+      }
+      later(function () { if (game.phase === 'intro') { game.phase = 'counting'; resetIdle(); } }, 250 + game.total * 260);
+    }, 500);
+  }
+
+  function countObject(o) {
+    if (o.counted) {
+      replayClass(o.el, 'nudge'); /* gentle, harmless */
+      sndSoft();
+      return;
+    }
+    if (game.phase !== 'counting' && game.phase !== 'intro') { return; }
+    if (!hasClass(o.el, 'in')) { return; }
+    o.counted = true;
+    game.counted++;
+    var n = game.counted;
+    o.el.querySelector('.num span').innerHTML = String(n);
+    removeClass(o.el, 'hint');
+    addClass(o.el, 'counted');
+    replayClass(o.el, 'tap-' + game.type);
+    sndCount(n);
+    say(NUMBERS[n] + '!', true);
+    var r = o.el.getBoundingClientRect();
+    sparkles(r.left + r.width / 2, r.top + r.height / 2, 6, S * 0.8);
+    resetIdle();
+
+    if (n >= game.total) {
+      game.phase = 'done';
+      clearIdle();
+      later(celebrate, 1100);
+    }
+  }
+
+  function celebrate() {
+    var w = WORDS[game.type];
+    var name = game.total === 1 ? w.one : w.many;
+    var numWord = NUMBERS[game.total];
+    var sentence = numWord.charAt(0).toUpperCase() + numWord.slice(1) + ' ' + name + '! ' + pick(PRAISE);
+
+    bubbleNum.innerHTML = String(game.total);
+    removeClass(bubbleEl, 'ask');
+    addClass(bubbleEl, 'total');
+    replayClass(mermaidEl, 'happy');
+    for (var i = 0; i < game.objects.length; i++) { replayClass(game.objects[i].el, 'jump'); }
+    sndCelebrate();
+    say(sentence, true);
+
+    var mr = mermaidEl.getBoundingClientRect();
+    sparkles(mr.left + mr.width * 0.5, mr.top + mr.height * 0.3, 12, Math.min(W, H) * 0.35);
+
+    game.roundsDone++;
+    later(function () {
+      removeClass(bubbleEl, 'show');
+      newRound();
+    }, 4200);
+  }
+
+  /* idle hint: after a quiet spell, gently pulse what's left and ask again */
+  function clearIdle() { if (game.idleTimer) { clearTimeout(game.idleTimer); game.idleTimer = null; } }
+  function resetIdle() {
+    clearIdle();
+    for (var i = 0; i < game.objects.length; i++) { removeClass(game.objects[i].el, 'hint'); }
+    game.idleTimer = setTimeout(function () {
+      if (game.phase !== 'counting') { return; }
+      for (var j = 0; j < game.objects.length; j++) {
+        if (!game.objects[j].counted) { addClass(game.objects[j].el, 'hint'); }
+      }
+      if (!game.hinted) { game.hinted = true; say(game.counted ? 'Keep going!' : promptText(), false); }
+      game.idleTimer = setTimeout(function () { game.hinted = false; resetIdle(); }, 6000);
+    }, 9000);
+  }
+
+  /* ================= effects ================= */
+  var raf = window.requestAnimationFrame || window.webkitRequestAnimationFrame || function (f) { return setTimeout(f, 16); };
+
+  function sparkles(x, y, count, dist) {
+    for (var i = 0; i < count; i++) {
+      (function (k) {
+        var s = document.createElement('div');
+        s.className = 'spark';
+        s.innerHTML = SPARK_SVG;
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+        setTransform(s, 'translate3d(0,0,0) scale(0.4)');
+        fxLayer.appendChild(s);
+        var a = (k / count) * Math.PI * 2 + rand(-0.3, 0.3);
+        var d = dist * rand(0.6, 1);
+        raf(function () {
+          raf(function () {
+            setTransform(s, 'translate3d(' + Math.round(Math.cos(a) * d) + 'px,' + Math.round(Math.sin(a) * d) + 'px,0) scale(1) rotate(' + randInt(90, 270) + 'deg)');
+            s.style.opacity = '0';
+          });
+        });
+        setTimeout(function () { if (s.parentNode) { s.parentNode.removeChild(s); } }, 900);
+      })(i);
+    }
+  }
+
+  var blipCount = 0;
+  function blip(x, y) {
+    if (blipCount > 4) { return; }
+    blipCount++;
+    var b = document.createElement('div');
+    b.className = 'blip';
+    b.style.left = x + 'px';
+    b.style.top = y + 'px';
+    setTransform(b, 'translate3d(0,0,0) scale(0.5)');
+    fxLayer.appendChild(b);
+    raf(function () { raf(function () {
+      setTransform(b, 'translate3d(0,-120px,0) scale(1.2)');
+      b.style.opacity = '0';
+    }); });
+    setTimeout(function () { blipCount--; if (b.parentNode) { b.parentNode.removeChild(b); } }, 1300);
+    sndSoft();
+  }
+
+  /* ================= input ================= */
+  var lastTouch = 0;
+  var supportsPassive = false;
+  try {
+    var opts = Object.defineProperty({}, 'passive', { get: function () { supportsPassive = true; return true; } });
+    window.addEventListener('testpassive', null, opts);
+    window.removeEventListener('testpassive', null, opts);
+  } catch (e) { }
+  var NP = supportsPassive ? { passive: false } : false;
+
+  function findObjectEl(node) {
+    while (node && node !== stage && node !== document) {
+      if (node.getAttribute && node.getAttribute('data-idx') !== null && hasClass(node, 'obj')) { return node; }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function objectFromEl(el) {
+    for (var i = 0; i < game.objects.length; i++) { if (game.objects[i].el === el) { return game.objects[i]; } }
+    return null;
+  }
+
+  /* forgiving hit test: a tap near an object still counts */
+  function nearestObject(x, y) {
+    var best = null, bestD = 1e9, i, r, cx, cy, d, o, limit = S * 0.8;
+    /* prefer objects that still need counting */
+    for (var pass = 0; pass < 2 && !best; pass++) {
+      for (i = 0; i < game.objects.length; i++) {
+        o = game.objects[i];
+        if (pass === 0 && o.counted) { continue; }
+        r = o.el.getBoundingClientRect();
+        cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+        d = Math.sqrt((cx - x) * (cx - x) + (cy - y) * (cy - y));
+        if (d < limit && d < bestD) { best = o; bestD = d; }
+      }
+    }
+    return best;
+  }
+
+  function inside(el, x, y) {
+    var r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  function handleTap(x, y, target) {
+    if (game.phase === 'idle') { return; }
+    var oel = findObjectEl(target);
+    var o = oel ? objectFromEl(oel) : nearestObject(x, y);
+    if (o) { countObject(o); return; }
+    if (inside(mermaidEl, x, y) || inside(bubbleEl, x, y)) {
+      if (game.phase === 'counting') { say(game.counted ? 'Keep going!' : promptText(), true); resetIdle(); }
+      replayClass(bubbleEl, 'show');
+      return;
+    }
+    blip(x, y);
+  }
+
+  function startGame() {
+    if (game.phase !== 'idle') { return; }
+    unlockAudio();
+    addClass(startEl, 'pressed');
+    /* first utterance inside the gesture unlocks speech on iOS */
+    say("Hi! Let's count together!", true);
+    tone(660, 0, 0.2, 'triangle', 0.15); tone(990, 0.12, 0.3, 'triangle', 0.15);
+    game.phase = 'intro';
+    setTimeout(function () {
+      startEl.style.display = 'none';
+      newRound();
+    }, 1500);
+  }
+
+  document.addEventListener('touchstart', function (e) {
+    e.preventDefault(); /* no zoom, scroll, selection or callout */
+    lastTouch = now();
+    if (e.touches && e.touches.length > 1) { return; } /* ignore multi-finger taps */
+    if (game.phase === 'idle') { return; } /* start happens on touchend for iOS audio unlock */
+    var t = e.changedTouches[0];
+    handleTap(t.clientX, t.clientY, e.target);
+  }, NP);
+
+  document.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    lastTouch = now();
+    if (e.touches && e.touches.length > 0) { return; }
+    /* iOS 9 only unlocks Web Audio from touchend */
+    if (actx && actx.state === 'suspended') { unlockAudio(); }
+    /* the start screen covers everything, so any tap starts the game */
+    if (game.phase === 'idle') { startGame(); }
+  }, NP);
+
+  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, NP);
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, NP);
+  document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, NP);
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  document.addEventListener('selectstart', function (e) { e.preventDefault(); });
+  document.addEventListener('dragstart', function (e) { e.preventDefault(); });
+
+  /* mouse, for desktop testing (ignored right after a touch) */
+  document.addEventListener('mousedown', function (e) {
+    if (now() - lastTouch < 1000) { return; }
+    if (e.button && e.button !== 0) { return; }
+    e.preventDefault();
+    if (game.phase === 'idle') { startGame(); return; }
+    handleTap(e.clientX, e.clientY, e.target);
+  });
+
+  /* ================= resize / orientation ================= */
+  var resizeTimer = null;
+  function onResize() {
+    if (resizeTimer) { clearTimeout(resizeTimer); }
+    resizeTimer = setTimeout(function () {
+      layout();
+      if (game.objects.length) {
+        var spots = findSpots(game.objects.length);
+        for (var i = 0; i < game.objects.length; i++) {
+          game.objects[i].spot = spots[i];
+          positionObject(game.objects[i]);
+        }
+      }
+      window.scrollTo(0, 0);
+    }, 250);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && synth) { try { synth.cancel(); } catch (e) { } }
+  });
+
+  layout();
+  window.scrollTo(0, 0);
+})();
+</script>
+</body>
+</html>
