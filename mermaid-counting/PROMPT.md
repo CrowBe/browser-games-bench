@@ -48,7 +48,7 @@ The game must run on an **original iPad mini running iOS 9.3.5 (Safari 9)**, whi
   first tap. Sound effects can be generated with the Web Audio API. Use `speechSynthesis`
   for speaking, but the game must still work if no voice is available.
 - Must work **fully offline** with **no external dependencies**: no CDNs, web fonts or
-  network requests. Draw graphics with inline SVG, canvas, CSS or emoji-free shapes.
+  network requests. Draw graphics with inline SVG, canvas or CSS.
   (Emoji may render differently or be missing on iOS 9, so don't rely on them.)
 - Keep it lightweight: the device has 512 MB of RAM and a slow CPU. Animations should be smooth.
 - Fill the screen in both landscape and portrait (1024×768), and include the right viewport
